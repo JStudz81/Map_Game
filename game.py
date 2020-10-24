@@ -24,7 +24,6 @@ class Game:
 
         self.load_nations()
 
-        # self.nations = [nation1, nation2, nation3, nation4]
         self.map.nations = self.nations
         self.selectedNation = None
 
@@ -53,7 +52,8 @@ class Game:
         self.turn_indicator.draw()
 
     def run(self):
-        while True:
+        playing = True
+        while playing:
             self.draw()
             while self.player_turn:
                 self.turn_indicator.new_message(self.player_nation.name)
@@ -83,7 +83,7 @@ class Game:
                 elif clicked[0] == 'recruit' and self.selectedNation == self.player_nation:
                     clicked[1].clicked = True
                     self.menu.draw()
-                    self.recruit(self.selectedNation)
+                    self.recruit(self.selectedNation, int(self.menu.recruit_amount.getText()))
                     clicked[1].clicked = False
                     self.player_turn = False
 
@@ -95,7 +95,7 @@ class Game:
                     self.turn_indicator.change_color(nation.color)
                     target = self.nations[random.randint(0,len(self.nations) - 1)]
                     if target == nation or nation.soldiers == 0:
-                        self.recruit(nation)
+                        self.recruit(nation, random.randint(0,int(nation.money * 10)))
                     else:
                         self.messageBoard.new_message(self.battle(target, nation))
 
@@ -105,6 +105,13 @@ class Game:
                 self.draw()
 
 
+            first = None
+            playing = False
+            for nation in self.nations:
+                if nation.soldiers > 0 and first is None:
+                    first = nation
+                elif nation.soldiers > 0:
+                    playing = True
 
             self.player_turn = True
 
@@ -149,8 +156,7 @@ class Game:
             if nation.shape.contains(geometry.Point(point.x, point.y)):
                 return 'nation', nation
 
-    def recruit(self, nation: Nation):
-        amount = int(self.menu.recruit_amount.getText())
+    def recruit(self, nation: Nation, amount):
         if amount / 10 <= nation.money:
             nation.soldiers = nation.soldiers + amount
             nation.money = nation.money - (amount/10)
