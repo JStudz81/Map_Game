@@ -55,8 +55,7 @@ class Game:
         playing = True
         while playing:
             self.draw()
-            while self.player_turn:
-                self.player_turn_action()
+            self.player_turn_action()
 
             self.random_event(self.player_nation)
 
@@ -75,46 +74,55 @@ class Game:
             self.player_turn = True
 
     def player_turn_action(self):
-        self.turn_indicator.new_message(self.player_nation.name)
-        self.turn_indicator.change_color(self.player_nation.color)
-        clickedPoint = self.map.window.getMouse()
+        attack_move = True
+        recruit_move = True
 
-        clicked = self.what_was_clicked(clickedPoint)
+        while self.player_turn:
+            self.turn_indicator.new_message(self.player_nation.name)
+            self.turn_indicator.change_color(self.player_nation.color)
+            clickedPoint = self.map.window.getMouse()
 
-        if clicked is None:
-            self.draw()
-        elif clicked[0] == 'nation' and self.selectedNation != clicked[1]:
-            self.selectedNation = clicked[1]
-            self.menu.loadNation(clicked[1], self.selectedNation == self.player_nation)
-        elif clicked[0] == 'attack' and self.selectedNation == self.player_nation:
-            self.menu.attackButton.clicked = True
-            self.menu.draw()
-            attackingClick = self.map.window.getMouse()
+            clicked = self.what_was_clicked(clickedPoint)
 
-            defender = self.what_was_clicked(attackingClick)
-            if defender[0] == 'nation' and defender[1] != self.selectedNation:
-                result = self.battle(defender[1], self.selectedNation)
+            if clicked is None:
+                self.draw()
+            elif clicked[0] == 'nation' and self.selectedNation != clicked[1]:
+                self.selectedNation = clicked[1]
+                self.menu.loadNation(clicked[1], self.selectedNation == self.player_nation)
+            elif clicked[0] == 'attack' and self.selectedNation == self.player_nation:
+                self.menu.attackButton.clicked = True
+                self.menu.draw()
+                attackingClick = self.map.window.getMouse()
 
-                self.messageBoard.new_message(result)
-                self.player_turn = False
+                defender = self.what_was_clicked(attackingClick)
+                if defender[0] == 'nation' and defender[1] != self.selectedNation:
+                    result = self.battle(defender[1], self.selectedNation)
 
-            self.menu.attackButton.clicked = False
-        elif clicked[0] == 'recruit' and self.selectedNation == self.player_nation:
-            clicked[1].clicked = True
-            self.menu.draw()
-            self.recruit(self.selectedNation, int(self.menu.recruit_amount.getText()))
-            clicked[1].clicked = False
-            self.player_turn = False
+                    self.messageBoard.new_message(result)
+                    attack_move = False
+                    self.menu.attackButton.visible = False
+                    self.menu.draw()
+
+                self.menu.attackButton.clicked = False
+            elif clicked[0] == 'recruit' and self.selectedNation == self.player_nation:
+                clicked[1].clicked = True
+                self.menu.draw()
+                self.recruit(self.selectedNation, int(self.menu.recruit_amount.getText()))
+                clicked[1].clicked = False
+                recruit_move = False
+                self.menu.recruitButton.visible = False
+                self.menu.draw()
+
+            self.player_turn = recruit_move or attack_move
 
 
     def ai_turn(self, nation):
         self.turn_indicator.new_message(nation.name)
         self.turn_indicator.change_color(nation.color)
         target = self.nations[random.randint(0, len(self.nations) - 1)]
-        if target == nation or nation.soldiers == 0:
-            self.recruit(nation, random.randint(0, int(nation.money * 10)))
-        else:
-            self.messageBoard.new_message(self.battle(target, nation))
+        self.recruit(nation, random.randint(0, int(nation.money * 10)))
+        sleep(1)
+        self.messageBoard.new_message(self.battle(target, nation))
 
         self.random_event(nation)
         nation.mapText.setStyle("normal")
