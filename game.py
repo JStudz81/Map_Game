@@ -7,6 +7,7 @@ from nation import Nation
 from graphics import graphics
 from shapely import geometry
 import random
+import json
 
 
 class Game:
@@ -17,31 +18,11 @@ class Game:
         self.menu = Menu(self.map.window)
         self.messageBoard = MessageBoard(self.map.window,graphics.Point(300, 400), graphics.Point(500, 500))
         self.turn_indicator = MessageBoard(self.map.window, graphics.Point(200, 450), graphics.Point(300, 500))
+        self.event_box = MessageBoard(self.map.window, graphics.Point(300, 0), graphics.Point(500, 100))
 
         self.nations = []
 
-        f = open("map_maker/nation_geometry.txt")
-        tempPoints = f.read()
-        nationPoints = []
-        index = 0
-        for group in tempPoints.split("\n"):
-            nPoints = []
-            if len(group) > 0:
-                for point in group.rsplit(','):
-                    if len(point) > 0:
-                        point = point.split(':')
-                        nPoints.append(geometry.Point(float(point[0]), float(point[1])))
-                nationPoints.append(nPoints)
-
-                self.nations.append(Nation('Name', [100, 100], 'red', 1000, nationPoints[index]))
-                index = index + 1
-
-
-        # nation1 = Nation('Croatia', [100, 100], 'red', 1000, nationPoints[0])
-        # nation2 = Nation('Albania', [200, 100], 'cyan', 1000, nationPoints[1])
-        #
-        # nation3 = Nation('Serbia', [100, 200], 'green', 1000, nationPoints[2])
-        # nation4 = Nation('Hungary', [200, 200], 'pink', 1000, nationPoints[3])
+        self.load_nations()
 
         # self.nations = [nation1, nation2, nation3, nation4]
         self.map.nations = self.nations
@@ -50,6 +31,20 @@ class Game:
         self.player_nation = self.nations[0]
         self.player_turn = True
 
+        print(self.nations[0])
+
+    def load_nations(self):
+        f = open("map_maker/nation_geometry.txt")
+
+        rows = f.readlines()
+
+        for row in rows:
+            tempNation = json.loads(row)
+            points = []
+            for i in tempNation['points']:
+                points.append(geometry.Point(tempNation['points'][i]['x'],tempNation['points'][i]['y']))
+            nation = Nation(tempNation['name'], tempNation['color'], 1000, points)
+            self.nations.append(nation)
 
     def draw(self):
         self.map.draw()
@@ -98,8 +93,7 @@ class Game:
                 if nation != self.player_nation:
                     self.turn_indicator.new_message(nation.name)
                     self.turn_indicator.change_color(nation.color)
-                    sleep(3)
-                    target = self.nations[random.randint(0,3)]
+                    target = self.nations[random.randint(0,len(self.nations) - 1)]
                     if target == nation or nation.soldiers == 0:
                         self.recruit(nation)
                     else:
@@ -115,8 +109,9 @@ class Game:
             self.player_turn = True
 
     def random_event(self, nation):
+        sleep(1)
         event = self.events(random.randint(1,3))
-        event(nation)
+        event(nation, self.event_box)
 
     def events(self, index):
         switcher = {
@@ -126,14 +121,23 @@ class Game:
         }
         return switcher.get(index)
 
-    def soldierEvent(self, nation):
+    def soldierEvent(self, nation, event_box: MessageBoard):
         nation.soldiers = nation.soldiers + 500
+        event_box.new_message(nation.name + " gained 500 soldiers!")
+        self.map.window.getMouse()
+        event_box.undraw()
 
-    def moneyEvent(self, nation):
+    def moneyEvent(self, nation, event_box: MessageBoard):
         nation.money = nation.money + 100
+        event_box.new_message(nation.name + " gained 100 gp!")
+        self.map.window.getMouse()
+        event_box.undraw()
 
-    def loseEvent(self, nation):
+    def loseEvent(self, nation, event_box: MessageBoard):
         print("you lose")
+        event_box.new_message("That fucking sucks.")
+        self.map.window.getMouse()
+        event_box.undraw()
 
 
     def what_was_clicked(self, point: graphics.Point):

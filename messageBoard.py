@@ -26,6 +26,10 @@ class MessageBoard:
             self.text.undraw()
             self.text.draw(self.window)
 
+    def undraw(self):
+        self.rect.undraw()
+        self.text.undraw()
+
     def new_message(self, text):
         self.text = graphics.Text(self.rect.getCenter(), text)
         self.draw()
