@@ -14,7 +14,7 @@ class Nation:
         self.position = position
         self.color = color
         self.money = 100
-        self.soldiers = soldiers
+        self.soldiers: int = soldiers
 
         self.points = coords
 

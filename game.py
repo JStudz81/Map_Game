@@ -56,54 +56,13 @@ class Game:
         while playing:
             self.draw()
             while self.player_turn:
-                self.turn_indicator.new_message(self.player_nation.name)
-                self.turn_indicator.change_color(self.player_nation.color)
-                clickedPoint = self.map.window.getMouse()
-
-                clicked = self.what_was_clicked(clickedPoint)
-
-                if clicked is None:
-                    self.draw()
-                elif clicked[0] == 'nation' and self.selectedNation != clicked[1]:
-                    self.selectedNation = clicked[1]
-                    self.menu.loadNation(clicked[1], self.selectedNation == self.player_nation)
-                elif clicked[0] == 'attack' and self.selectedNation == self.player_nation:
-                    self.menu.attackButton.clicked = True
-                    self.menu.draw()
-                    attackingClick = self.map.window.getMouse()
-
-                    defender = self.what_was_clicked(attackingClick)
-                    if defender[0] == 'nation' and defender[1] != self.selectedNation:
-                        result = self.battle(defender[1], self.selectedNation)
-
-                        self.messageBoard.new_message(result)
-                        self.player_turn = False
-
-                    self.menu.attackButton.clicked = False
-                elif clicked[0] == 'recruit' and self.selectedNation == self.player_nation:
-                    clicked[1].clicked = True
-                    self.menu.draw()
-                    self.recruit(self.selectedNation, int(self.menu.recruit_amount.getText()))
-                    clicked[1].clicked = False
-                    self.player_turn = False
+                self.player_turn_action()
 
             self.random_event(self.player_nation)
 
             for nation in self.nations:
                 if nation != self.player_nation:
-                    self.turn_indicator.new_message(nation.name)
-                    self.turn_indicator.change_color(nation.color)
-                    target = self.nations[random.randint(0,len(self.nations) - 1)]
-                    if target == nation or nation.soldiers == 0:
-                        self.recruit(nation, random.randint(0,int(nation.money * 10)))
-                    else:
-                        self.messageBoard.new_message(self.battle(target, nation))
-
-                    self.random_event(nation)
-
-                nation.mapText.setStyle("normal")
-                self.draw()
-
+                    self.ai_turn(nation)
 
             first = None
             playing = False
@@ -114,6 +73,52 @@ class Game:
                     playing = True
 
             self.player_turn = True
+
+    def player_turn_action(self):
+        self.turn_indicator.new_message(self.player_nation.name)
+        self.turn_indicator.change_color(self.player_nation.color)
+        clickedPoint = self.map.window.getMouse()
+
+        clicked = self.what_was_clicked(clickedPoint)
+
+        if clicked is None:
+            self.draw()
+        elif clicked[0] == 'nation' and self.selectedNation != clicked[1]:
+            self.selectedNation = clicked[1]
+            self.menu.loadNation(clicked[1], self.selectedNation == self.player_nation)
+        elif clicked[0] == 'attack' and self.selectedNation == self.player_nation:
+            self.menu.attackButton.clicked = True
+            self.menu.draw()
+            attackingClick = self.map.window.getMouse()
+
+            defender = self.what_was_clicked(attackingClick)
+            if defender[0] == 'nation' and defender[1] != self.selectedNation:
+                result = self.battle(defender[1], self.selectedNation)
+
+                self.messageBoard.new_message(result)
+                self.player_turn = False
+
+            self.menu.attackButton.clicked = False
+        elif clicked[0] == 'recruit' and self.selectedNation == self.player_nation:
+            clicked[1].clicked = True
+            self.menu.draw()
+            self.recruit(self.selectedNation, int(self.menu.recruit_amount.getText()))
+            clicked[1].clicked = False
+            self.player_turn = False
+
+
+    def ai_turn(self, nation):
+        self.turn_indicator.new_message(nation.name)
+        self.turn_indicator.change_color(nation.color)
+        target = self.nations[random.randint(0, len(self.nations) - 1)]
+        if target == nation or nation.soldiers == 0:
+            self.recruit(nation, random.randint(0, int(nation.money * 10)))
+        else:
+            self.messageBoard.new_message(self.battle(target, nation))
+
+        self.random_event(nation)
+        nation.mapText.setStyle("normal")
+        self.draw()
 
     def random_event(self, nation):
         sleep(1)
@@ -168,25 +173,23 @@ class Game:
 
         battleInfo = battleInfo + attacker.name + " has attacked " + defender.name + "!\n"
 
-        if defender.soldiers > attacker.soldiers:
-            battleInfo = battleInfo + defender.name + " Wins the Battle\n"
-            defender.money = defender.money + attacker.soldiers / 20
-        elif defender.soldiers < attacker.soldiers:
-            battleInfo = battleInfo + attacker.name + " Wins the Battle\n"
-            attacker.money = attacker.money + defender.soldiers / 20
-        else:
-            battleInfo = battleInfo + "Nobody Wins the Battle\n"
-
         defenderSoldierCount = defender.soldiers
         attackerSoldierCount = attacker.soldiers
-        defender.soldiers = defender.soldiers - attacker.soldiers
-        attacker.soldiers = attacker.soldiers - defenderSoldierCount
 
-        if defender.soldiers < 0:
-            defender.soldiers = 0
+        result = defender.soldiers - (attacker.soldiers * .8)
 
-        if attacker.soldiers < 0:
+        if result > 0:
+            battleInfo = battleInfo + defender.name + " Wins the Battle\n"
+            defender.money = defender.money + attacker.soldiers / 20
             attacker.soldiers = 0
+            defender.soldiers = result
+        elif result < 0:
+            battleInfo = battleInfo + attacker.name + " Wins the Battle\n"
+            attacker.money = attacker.money + defender.soldiers / 20
+            defender.soldiers = 0
+            attacker.soldiers = abs(result)
+        else:
+            battleInfo = battleInfo + "Nobody Wins the Battle\n"
 
         battleInfo = battleInfo + defender.name + " lost " + str(defenderSoldierCount - defender.soldiers) + " soldiers\n"
         battleInfo = battleInfo + attacker.name + " lost " + str(attackerSoldierCount - attacker.soldiers) + " soldiers\n"
