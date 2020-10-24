@@ -112,6 +112,10 @@ class Game:
         sleep(1)
         event = self.events(random.randint(1,3))
         event(nation, self.event_box)
+        self.draw()
+        self.map.window.getMouse()
+        self.event_box.undraw()
+
 
     def events(self, index):
         switcher = {
@@ -124,20 +128,14 @@ class Game:
     def soldierEvent(self, nation, event_box: MessageBoard):
         nation.soldiers = nation.soldiers + 500
         event_box.new_message(nation.name + " gained 500 soldiers!")
-        self.map.window.getMouse()
-        event_box.undraw()
 
     def moneyEvent(self, nation, event_box: MessageBoard):
         nation.money = nation.money + 100
         event_box.new_message(nation.name + " gained 100 gp!")
-        self.map.window.getMouse()
-        event_box.undraw()
 
     def loseEvent(self, nation, event_box: MessageBoard):
         print("you lose")
         event_box.new_message("That fucking sucks.")
-        self.map.window.getMouse()
-        event_box.undraw()
 
 
     def what_was_clicked(self, point: graphics.Point):
@@ -151,10 +149,13 @@ class Game:
             if nation.shape.contains(geometry.Point(point.x, point.y)):
                 return 'nation', nation
 
-    def recruit(self, nation):
-        nation.soldiers = nation.soldiers + 100
-        nation.money = nation.money - 10
-        self.messageBoard.new_message(nation.name + " has recruited 100 Soldiers")
+    def recruit(self, nation: Nation):
+        amount = int(self.menu.recruit_amount.getText())
+        if amount / 10 <= nation.money:
+            nation.soldiers = nation.soldiers + amount
+            nation.money = nation.money - (amount/10)
+        self.messageBoard.new_message(nation.name + " has recruited " + str(amount) + " Soldiers")
+        self.draw()
 
     def battle(self, defender: Nation, attacker: Nation):
         battleInfo = ""

@@ -19,11 +19,13 @@ class Menu:
 
         self.attackButton = Button('Attack', graphics.Point(0, 400), graphics.Point(50, 425))
         self.recruitButton = Button('Recruit', graphics.Point(50,400), graphics.Point(100, 425))
+        self.recruit_amount = graphics.Entry(graphics.Point(125, 412.5), 4)
 
     def loadNation(self, nation, player: bool):
         self.nation = nation
         self.attackButton.visible = player
         self.recruitButton.visible = player
+        self.recruit_amount.undraw()
         self.text = graphics.Text(self.rect.getCenter(),
                                   self.nation.name + " - Money: " + str(self.nation.money) + " - Soldiers: " + str(
                                       self.nation.soldiers))
@@ -40,3 +42,7 @@ class Menu:
 
         self.attackButton.draw(self.window)
         self.recruitButton.draw(self.window)
+
+        if self.attackButton.visible:
+            self.recruit_amount.undraw()
+            self.recruit_amount.draw(self.window)
