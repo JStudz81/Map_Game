@@ -8,6 +8,8 @@ from graphics import graphics
 from shapely import geometry
 import random
 import json
+from ShapeToGraphics import Shape
+from region import Region
 
 
 class Game:
@@ -21,10 +23,11 @@ class Game:
         self.event_box = MessageBoard(self.map.window, graphics.Point(300, 0), graphics.Point(500, 100))
 
         self.nations = []
+        self.regions = []
 
         self.load_nations()
 
-        self.map.nations = self.nations
+        self.map.regions = self.regions
         self.selectedNation = None
 
         self.player_nation = self.nations[0]
@@ -42,8 +45,11 @@ class Game:
             points = []
             for i in tempNation['points']:
                 points.append(geometry.Point(tempNation['points'][i]['x'],tempNation['points'][i]['y']))
-            nation = Nation(tempNation['name'], tempNation['color'], 1000, points)
+            nation = Nation(tempNation['name'], tempNation['color'], 1000)
+            region = Region(points, nation)
+            region.shape.color = nation.color
             self.nations.append(nation)
+            self.regions.append(region)
 
     def draw(self):
         self.map.draw()
@@ -76,6 +82,8 @@ class Game:
     def player_turn_action(self):
         attack_move = True
         recruit_move = True
+        self.menu.attackButton.visible = True
+        self.menu.recruitButton.visible = True
 
         while self.player_turn:
             self.turn_indicator.new_message(self.player_nation.name)
@@ -125,7 +133,6 @@ class Game:
         self.messageBoard.new_message(self.battle(target, nation))
 
         self.random_event(nation)
-        nation.mapText.setStyle("normal")
         self.draw()
 
     def random_event(self, nation):
@@ -165,9 +172,9 @@ class Game:
         if self.menu.recruitButton.rect.getP1().getX() < point.getX() < self.menu.recruitButton.rect.getP2().getX() and self.menu.recruitButton.rect.getP1().getY() < point.getY() < self.menu.recruitButton.rect.getP2().getY():
             return 'recruit', self.menu.recruitButton
 
-        for nation in self.nations:
-            if nation.shape.contains(geometry.Point(point.x, point.y)):
-                return 'nation', nation
+        for region in self.regions:
+            if region.shape.polygon.contains(geometry.Point(point.x, point.y)):
+                return 'nation', region.owner
 
     def recruit(self, nation: Nation, amount):
         if amount / 10 <= nation.money:
