@@ -1,8 +1,11 @@
+from typing import List
+
 from graphics import graphics
 from menu import Menu
 from shapely import geometry
 import json
 from ShapeToGraphics import Shape
+from region import Region
 
 
 class Nation:
@@ -12,6 +15,14 @@ class Nation:
         self.color = color
         self.money = 100
         self.soldiers: int = soldiers
+        self.regions: List[Region] = []
+
+    def add_regions(self, regions: List[Region]):
+        self.regions = self.regions + regions
+        for region in regions:
+            region.owner = self
+            region.shape.color = self.color
+            region.mapText.setText("")
 
 
 

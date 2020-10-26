@@ -1,5 +1,6 @@
 from time import sleep
 
+from battle import Battle
 from map import Map
 from menu import Menu
 from messageBoard import MessageBoard
@@ -46,8 +47,9 @@ class Game:
             for i in tempNation['points']:
                 points.append(geometry.Point(tempNation['points'][i]['x'],tempNation['points'][i]['y']))
             nation = Nation(tempNation['name'], tempNation['color'], 1000)
-            region = Region(points, nation)
+            region = Region(points)
             region.shape.color = nation.color
+            nation.regions = [region]
             self.nations.append(nation)
             self.regions.append(region)
 
@@ -62,11 +64,11 @@ class Game:
         while playing:
             self.draw()
             self.player_turn_action()
-
+            self.draw()
             self.random_event(self.player_nation)
 
             for nation in self.nations:
-                if nation != self.player_nation:
+                if nation != self.player_nation and nation.soldiers != 0:
                     self.ai_turn(nation)
 
             first = None
@@ -76,6 +78,9 @@ class Game:
                     first = nation
                 elif nation.soldiers > 0:
                     playing = True
+
+            if self.player_nation.soldiers == 0:
+                playing = False
 
             self.player_turn = True
 
@@ -103,7 +108,7 @@ class Game:
                 attackingClick = self.map.window.getMouse()
 
                 defender = self.what_was_clicked(attackingClick)
-                if defender[0] == 'nation' and defender[1] != self.selectedNation:
+                if defender is not None and defender[0] == 'nation' and defender[1] != self.selectedNation:
                     result = self.battle(defender[1], self.selectedNation)
 
                     self.messageBoard.new_message(result)
@@ -164,7 +169,6 @@ class Game:
         print("you lose")
         event_box.new_message("That fucking sucks.")
 
-
     def what_was_clicked(self, point: graphics.Point):
         if 0 < point.getX() < 50 and 400 < point.getY() < 425:
             return 'attack', self.menu.attackButton
@@ -172,15 +176,18 @@ class Game:
         if self.menu.recruitButton.rect.getP1().getX() < point.getX() < self.menu.recruitButton.rect.getP2().getX() and self.menu.recruitButton.rect.getP1().getY() < point.getY() < self.menu.recruitButton.rect.getP2().getY():
             return 'recruit', self.menu.recruitButton
 
-        for region in self.regions:
-            if region.shape.polygon.contains(geometry.Point(point.x, point.y)):
-                return 'nation', region.owner
+        for nation in self.nations:
+            for region in nation.regions:
+                if region.shape.polygon.contains(geometry.Point(point.x, point.y)):
+                    return 'nation', nation
 
     def recruit(self, nation: Nation, amount):
         if amount / 10 <= nation.money:
             nation.soldiers = nation.soldiers + amount
             nation.money = nation.money - (amount/10)
-        self.messageBoard.new_message(nation.name + " has recruited " + str(amount) + " Soldiers")
+            self.messageBoard.new_message(nation.name + " has recruited " + str(amount) + " Soldiers")
+        else:
+            self.messageBoard.new_message("Not Enough Money!")
         self.draw()
 
     def battle(self, defender: Nation, attacker: Nation):
@@ -188,26 +195,10 @@ class Game:
 
         battleInfo = battleInfo + attacker.name + " has attacked " + defender.name + "!\n"
 
-        defenderSoldierCount = defender.soldiers
-        attackerSoldierCount = attacker.soldiers
+        battle = Battle(attacker, defender)
 
-        result = defender.soldiers - (attacker.soldiers * .8)
-
-        if result > 0:
-            battleInfo = battleInfo + defender.name + " Wins the Battle\n"
-            defender.money = defender.money + attacker.soldiers / 20
-            attacker.soldiers = 0
-            defender.soldiers = result
-        elif result < 0:
-            battleInfo = battleInfo + attacker.name + " Wins the Battle\n"
-            attacker.money = attacker.money + defender.soldiers / 20
-            defender.soldiers = 0
-            attacker.soldiers = abs(result)
-        else:
-            battleInfo = battleInfo + "Nobody Wins the Battle\n"
-
-        battleInfo = battleInfo + defender.name + " lost " + str(defenderSoldierCount - defender.soldiers) + " soldiers\n"
-        battleInfo = battleInfo + attacker.name + " lost " + str(attackerSoldierCount - attacker.soldiers) + " soldiers\n"
+        battleInfo = battleInfo + defender.name + " lost " + str(battle.outcome[1]) + " soldiers\n"
+        battleInfo = battleInfo + attacker.name + " lost " + str(battle.outcome[0]) + " soldiers\n"
 
         return battleInfo
 
