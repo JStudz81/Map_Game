@@ -24,6 +24,10 @@ class Battle:
             self.attacker.soldiers = self.attacker.soldiers - (100 - attacker_regiment)
             self.defender.soldiers = self.defender.soldiers - (100 - defender_regiment)
 
+            if attacker_regiment == 0 or defender_regiment == 0:
+                print("Shatter")
+                break
+
 
         if self.attacker.soldiers < 0:
             self.attacker.soldiers = 0

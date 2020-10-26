@@ -49,6 +49,7 @@ class Game:
             nation = Nation(tempNation['name'], tempNation['color'], 1000)
             region = Region(points)
             region.shape.color = nation.color
+            region.name = nation.name
             nation.regions = [region]
             self.nations.append(nation)
             self.regions.append(region)
@@ -132,7 +133,11 @@ class Game:
     def ai_turn(self, nation):
         self.turn_indicator.new_message(nation.name)
         self.turn_indicator.change_color(nation.color)
-        target = self.nations[random.randint(0, len(self.nations) - 1)]
+        target = None
+        while target is None:
+            target = self.nations[random.randint(0, len(self.nations) - 1)]
+            if target == nation or target.soldiers == 0:
+                target = None
         self.recruit(nation, random.randint(0, int(nation.money * 10)))
         sleep(1)
         self.messageBoard.new_message(self.battle(target, nation))
